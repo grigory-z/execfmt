@@ -5,14 +5,14 @@ use std::fs;
 use std::fmt;
 use byteorder;
 use byteorder::ReadBytesExt;
-use elf;
+use elf::types;
 use std::collections::HashMap;
 
 macro_rules! read_u64 {
     ($data:ident, $io:ident) => (
         match $data {
-            elf::ELFDATA2LSB => { $io.read_u64::<byteorder::LittleEndian>() },
-            elf::ELFDATA2MSB => { $io.read_u64::<byteorder::BigEndian>()},
+            types::ELFDATA2LSB => { $io.read_u64::<byteorder::LittleEndian>() },
+            types::ELFDATA2MSB => { $io.read_u64::<byteorder::BigEndian>()},
             _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
         }
     );
@@ -21,8 +21,8 @@ macro_rules! read_u64 {
 macro_rules! read_u32 {
     ($data:ident, $io:ident) => (
         match $data {
-            elf::ELFDATA2LSB => { $io.read_u32::<byteorder::LittleEndian>() },
-            elf::ELFDATA2MSB => { $io.read_u32::<byteorder::BigEndian>()},
+            types::ELFDATA2LSB => { $io.read_u32::<byteorder::LittleEndian>() },
+            types::ELFDATA2MSB => { $io.read_u32::<byteorder::BigEndian>()},
             _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
         }
     );
@@ -31,8 +31,8 @@ macro_rules! read_u32 {
 macro_rules! read_u16 {
     ($data:ident, $io:ident) => (
         match $data {
-            elf::ELFDATA2LSB => { $io.read_u16::<byteorder::LittleEndian>() },
-            elf::ELFDATA2MSB => { $io.read_u16::<byteorder::BigEndian>()},
+            types::ELFDATA2LSB => { $io.read_u16::<byteorder::LittleEndian>() },
+            types::ELFDATA2MSB => { $io.read_u16::<byteorder::BigEndian>()},
             _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
         }
     );
@@ -56,12 +56,12 @@ fn get_elf_string(data: &Vec<u8>, start: usize) -> String {
 }
 
 pub struct File {
-    hdr: elf::FileHeader,
+    hdr: types::FileHeader,
     sections: HashMap<String, Section>,
 }
 
 pub struct Section {
-    hdr: elf::SectionHeader,
+    hdr: types::SectionHeader,
     data: Vec<u8>,
 }
 
@@ -70,33 +70,33 @@ impl File {
         let rf = try!(fs::File::open(path));
         let mut f = io::BufReader::new(rf);
 
-        let mut eident = [0u8; elf::EI_NIDENT];
+        let mut eident = [0u8; types::EI_NIDENT];
         try!(f.read(&mut eident));
 
-        if eident[0..4] != elf::ELFMAG {
+        if eident[0..4] != types::ELFMAG {
             return Err(io::Error::new(io::ErrorKind::Other, "invalid magic number"));
         }
 
-        let class = elf::Class(eident[elf::EI_CLASS]);
-        let data = elf::Data(eident[elf::EI_DATA]);
-        let os_abi = elf::OsAbi(eident[elf::EI_OSABI]);
-        let abi_version = eident[elf::EI_ABIVERSION];
+        let class = types::Class(eident[types::EI_CLASS]);
+        let data = types::Data(eident[types::EI_DATA]);
+        let os_abi = types::OsAbi(eident[types::EI_OSABI]);
+        let abi_version = eident[types::EI_ABIVERSION];
 
-        let elf_type = elf::Type(try!(read_u16!(data, f)));
-        let machine = elf::Machine(try!(read_u16!(data, f)));
-        let version = elf::Version(try!(read_u32!(data, f)));
+        let elf_type = types::Type(try!(read_u16!(data, f)));
+        let machine = types::Machine(try!(read_u16!(data, f)));
+        let version = types::Version(try!(read_u32!(data, f)));
 
         let mut entry: u64;
         let mut phoff: u64;
         let mut shoff: u64;
 
         match class {
-            elf::ELFCLASS32 => {
+            types::ELFCLASS32 => {
                 entry = try!(read_u32!(data, f)) as u64;
                 phoff = try!(read_u32!(data, f)) as u64;
                 shoff = try!(read_u32!(data, f)) as u64;
             }
-            elf::ELFCLASS64 => {
+            types::ELFCLASS64 => {
                 entry = try!(read_u64!(data, f));
                 phoff = try!(read_u64!(data, f));
                 shoff = try!(read_u64!(data, f));
@@ -121,8 +121,8 @@ impl File {
 
         for _ in 0..shnum {
             let name = String::new();
-            let mut shtype: elf::SectionType;
-            let mut flags: elf::SectionFlag;
+            let mut shtype: types::SectionType;
+            let mut flags: types::SectionFlag;
             let mut addr: u64;
             let mut offset: u64;
             let mut size: u64;
@@ -132,10 +132,10 @@ impl File {
             let mut entsize: u64;
 
             name_idxs.push(try!(read_u32!(data, f)));
-            shtype = elf::SectionType(try!(read_u32!(data, f)));
+            shtype = types::SectionType(try!(read_u32!(data, f)));
             match class {
-                elf::ELFCLASS32 => {
-                    flags = elf::SectionFlag(try!(read_u32!(data, f)) as u64);
+                types::ELFCLASS32 => {
+                    flags = types::SectionFlag(try!(read_u32!(data, f)) as u64);
                     addr = try!(read_u32!(data, f)) as u64;
                     offset = try!(read_u32!(data, f)) as u64;
                     size = try!(read_u32!(data, f)) as u64;
@@ -144,8 +144,8 @@ impl File {
                     addralign = try!(read_u32!(data, f)) as u64;
                     entsize = try!(read_u32!(data, f)) as u64;
                 }
-                elf::ELFCLASS64 => {
-                    flags = elf::SectionFlag(try!(read_u64!(data, f)));
+                types::ELFCLASS64 => {
+                    flags = types::SectionFlag(try!(read_u64!(data, f)));
                     addr = try!(read_u64!(data, f));
                     offset = try!(read_u64!(data, f));
                     size = try!(read_u64!(data, f));
@@ -157,7 +157,7 @@ impl File {
                 _ => unreachable!(),
             }
 
-            sections_lst.push(elf::SectionHeader {
+            sections_lst.push(types::SectionHeader {
                 name: name,
                 shtype: shtype,
                 flags: flags,
@@ -188,7 +188,7 @@ impl File {
         }
 
         Ok(File {
-            hdr: elf::FileHeader {
+            hdr: types::FileHeader {
                 class: class,
                 data: data,
                 version: version,
@@ -208,7 +208,7 @@ impl File {
 }
 
 impl Section {
-    pub fn header(&self) -> &elf::SectionHeader {
+    pub fn header(&self) -> &types::SectionHeader {
         &self.hdr
     }
     pub fn data(&self) -> &Vec<u8> {
