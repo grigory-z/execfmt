@@ -7,7 +7,7 @@ use std::str;
 use std::ffi;
 use byteorder;
 use byteorder::ReadBytesExt;
-use pe;
+use pe::types;
 use std::collections::HashMap;
 
 macro_rules! read_u8 {
@@ -35,12 +35,12 @@ macro_rules! read_u64 {
 }
 
 pub struct Section {
-    hdr: pe::SectionHeader,
+    hdr: types::SectionHeader,
     data: Vec<u8>,
 }
 
 impl Section {
-    pub fn header(&self) -> &pe::SectionHeader {
+    pub fn header(&self) -> &types::SectionHeader {
         &self.hdr
     }
     pub fn data(&self) -> &Vec<u8> {
@@ -55,8 +55,8 @@ impl fmt::Display for Section {
 }
 
 pub struct File {
-    file_hdr: pe::FileHeader,
-    opt_hdr: pe::OptionalHeader,
+    file_hdr: types::FileHeader,
+    opt_hdr: types::OptionalHeader,
     sections: HashMap<String, Section>,
 }
 
@@ -67,7 +67,7 @@ impl File {
 
         let dossig = try!(read_u16!(f));
 
-        if dossig != pe::DOS_HDR_MAG {
+        if dossig != types::DOS_HDR_MAG {
             return Err(io::Error::new(io::ErrorKind::Other, "invalid DOS signature"));
         }
 
@@ -81,12 +81,12 @@ impl File {
 
         let pesig = try!(read_u32!(f));
 
-        if pesig != pe::PE_HDR_MAG {
+        if pesig != types::PE_HDR_MAG {
             println!("{:#x} sig", pesig);
             return Err(io::Error::new(io::ErrorKind::Other, "invalid PE signature"));
         }
 
-        let machine = pe::Machine(try!(read_u16!(f)));
+        let machine = types::Machine(try!(read_u16!(f)));
         let num_sections = try!(read_u16!(f));
         let create_time = try!(read_u32!(f));
         let _ = try!(read_u32!(f));
@@ -104,7 +104,7 @@ impl File {
             return Err(io::Error::new(io::ErrorKind::Other, "optional header missing"));
         }
 
-        let magic = pe::Class(try!(read_u16!(f)));
+        let magic = types::Class(try!(read_u16!(f)));
         let maj_link_ver = try!(read_u8!(f));
         let min_link_ver = try!(read_u8!(f));
         let code_size = try!(read_u32!(f));
@@ -113,14 +113,14 @@ impl File {
         let enter_addr = try!(read_u32!(f));
         let base_code = try!(read_u32!(f));
         let base_data = {
-            if magic == pe::PECLASS64 {
+            if magic == types::PECLASS64 {
                 0
             } else {
                 try!(read_u32!(f))
             }
         };
         let base_img = {
-            if magic == pe::PECLASS64 {
+            if magic == types::PECLASS64 {
                 try!(read_u64!(f))
             } else {
                 try!(read_u32!(f)) as u64
@@ -141,28 +141,28 @@ impl File {
         let subsys = try!(read_u16!(f));
         let dll_char = try!(read_u16!(f));
         let stack_rsrv_size = {
-            if magic == pe::PECLASS64 {
+            if magic == types::PECLASS64 {
                 try!(read_u64!(f))
             } else {
                 try!(read_u32!(f)) as u64
             }
         };
         let stack_commit_size = {
-            if magic == pe::PECLASS64 {
+            if magic == types::PECLASS64 {
                 try!(read_u64!(f))
             } else {
                 try!(read_u32!(f)) as u64
             }
         };
         let heap_rsrv_size = {
-            if magic == pe::PECLASS64 {
+            if magic == types::PECLASS64 {
                 try!(read_u64!(f))
             } else {
                 try!(read_u32!(f)) as u64
             }
         };
         let heap_commit_size = {
-            if magic == pe::PECLASS64 {
+            if magic == types::PECLASS64 {
                 try!(read_u64!(f))
             } else {
                 try!(read_u32!(f)) as u64
@@ -212,7 +212,7 @@ impl File {
             let characteristics = try!(read_u32!(f));
             let name =  ffi::CString::new(name_str).unwrap();
 
-            sections_lst.push(pe::SectionHeader {
+            sections_lst.push(types::SectionHeader {
                     name: name,
                     virt_size: virt_size,
                     virt_addr: virt_addr,
@@ -237,14 +237,14 @@ impl File {
 
 
         Ok(File {
-            file_hdr: pe::FileHeader {
+            file_hdr: types::FileHeader {
                 machine: machine,
                 num_sections: num_sections,
                 create_time: create_time,
                 opt_hdr_size: opt_hdr_size,
                 characteristics: characteristics,
             },
-            opt_hdr: pe::OptionalHeader {
+            opt_hdr: types::OptionalHeader {
                 magic: magic,
                 maj_link_ver: maj_link_ver,
                 min_link_ver: min_link_ver,
