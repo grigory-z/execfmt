@@ -692,6 +692,12 @@ pub struct FileHeader {
     pub entrypoint: u64,
 }
 
+impl fmt::Display for FileHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "ELF header for {} {} ELF {} for {} {}", self.class, self.data, self.elf_type, self.os_abi, self.machine)
+    }
+}
+
 pub struct SectionHeader {
     pub name: String,
     pub shtype: SectionType,
@@ -703,6 +709,12 @@ pub struct SectionHeader {
     pub info: u32,
     pub addralign: u64,
     pub entsize: u64,
+}
+impl fmt::Display for SectionHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Section '{}': type: {} flags: {} addr: {:#010x} offset: {:#06x} size: {:#06x} link: {} info: {:#x} addralign: {} entsize: {}",
+               self.name, self.shtype, self.flags, self.addr, self.offset, self.size, self.link, self.info, self.addralign, self.entsize)
+    }
 }
 
 pub struct ProgramHeader {

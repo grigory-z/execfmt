@@ -218,12 +218,18 @@ impl Section {
 
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ELF file version {:x}", self.hdr.version.0)
+        try!(writeln!(f, "ELF file"));
+        try!(write!(f, "{}", self.hdr));
+        try!(writeln!(f, "ELF sections"));
+        for section in self.sections.values() {
+            try!(write!(f, "{}", section));
+        }
+        Ok(())
     }
 }
 
 impl fmt::Display for Section {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ELF section '{}' from {:#x} to {:#x}", self.hdr.name, self.hdr.addr, self.hdr.addr + self.hdr.size)
+        write!(f, "{}", self.hdr)
     }
 }
