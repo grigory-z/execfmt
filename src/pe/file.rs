@@ -50,7 +50,7 @@ impl Section {
 
 impl fmt::Display for Section {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "PE section '{:?}' from {:#x} to {:#x}", self.hdr.name, self.hdr.virt_addr, self.hdr.virt_addr + self.hdr.virt_size)
+        write!(f, "PE section '{:?}' from {:#x} to {:#x}", self.hdr.name, self.hdr.virt_addr, self.hdr.virt_addr + self.hdr.virt_size as u64)
     }
 }
 
@@ -112,8 +112,20 @@ impl File {
         let uninit_size = try!(read_u32!(f));
         let enter_addr = try!(read_u32!(f));
         let base_code = try!(read_u32!(f));
-        let base_data = try!(read_u32!(f));
-        let base_img = try!(read_u32!(f));
+        let base_data = {
+            if magic == pe::PECLASS64 {
+                0
+            } else {
+                try!(read_u32!(f))
+            }
+        };
+        let base_img = {
+            if magic == pe::PECLASS64 {
+                try!(read_u64!(f))
+            } else {
+                try!(read_u32!(f)) as u64
+            }
+        };
         let align_sec = try!(read_u32!(f));
         let align_file = try!(read_u32!(f));
         let maj_op_ver = try!(read_u16!(f));
@@ -128,14 +140,38 @@ impl File {
         let chksum = try!(read_u32!(f));
         let subsys = try!(read_u16!(f));
         let dll_char = try!(read_u16!(f));
-        let stack_rsrv_size = try!(read_u32!(f));
-        let stack_commit_size = try!(read_u32!(f));
-        let heap_rsrv_size = try!(read_u32!(f));
-        let heap_commit_size = try!(read_u32!(f));
+        let stack_rsrv_size = {
+            if magic == pe::PECLASS64 {
+                try!(read_u64!(f))
+            } else {
+                try!(read_u32!(f)) as u64
+            }
+        };
+        let stack_commit_size = {
+            if magic == pe::PECLASS64 {
+                try!(read_u64!(f))
+            } else {
+                try!(read_u32!(f)) as u64
+            }
+        };
+        let heap_rsrv_size = {
+            if magic == pe::PECLASS64 {
+                try!(read_u64!(f))
+            } else {
+                try!(read_u32!(f)) as u64
+            }
+        };
+        let heap_commit_size = {
+            if magic == pe::PECLASS64 {
+                try!(read_u64!(f))
+            } else {
+                try!(read_u32!(f)) as u64
+            }
+        };
         let loader_flags = try!(read_u32!(f));
         let num_rva = try!(read_u32!(f));
 
-        println!("optional magic: {:?}", magic);
+        println!("bits: {:?}", magic);
         println!("major linker version: {:#x}", maj_link_ver);
         println!("minor linker version: {:#x}", min_link_ver);
         println!("code size: {:#x}", code_size);
@@ -166,7 +202,7 @@ impl File {
             }
 
             let virt_size = try!(read_u32!(f));
-            let virt_addr = try!(read_u32!(f)) + base_img;
+            let virt_addr = try!(read_u32!(f)) as u64 + base_img;
             let data_size = try!(read_u32!(f));
             let raw_ptr = try!(read_u32!(f));
             let reloc_ptr = try!(read_u32!(f));

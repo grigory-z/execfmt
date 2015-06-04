@@ -6,6 +6,7 @@ use std::fmt;
 pub const DOS_HDR_MAG: u16 = 0x5A4D;
 pub const PE_HDR_MAG: u32 = 0x00004550;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Class(pub u16);
 pub const PECLASSROM: Class = Class(0x107);
 pub const PECLASS32: Class = Class(0x10B);
@@ -29,6 +30,7 @@ impl fmt::Display for Class {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Machine(pub u16);
 
 impl fmt::Debug for Machine {
@@ -55,7 +57,7 @@ pub struct OptionalHeader {
     pub enter_addr: u32,
     pub base_code: u32,
     pub base_data: u32,
-    pub base_img: u32,
+    pub base_img: u64,
     pub align_sec: u32,
     pub align_file: u32,
     pub maj_op_ver: u16,
@@ -70,10 +72,10 @@ pub struct OptionalHeader {
     pub chksum: u32,
     pub subsys: u16,
     pub dll_char: u16,
-    pub stack_rsrv_size: u32,
-    pub stack_commit_size: u32,
-    pub heap_rsrv_size: u32,
-    pub heap_commit_size: u32,
+    pub stack_rsrv_size: u64,
+    pub stack_commit_size: u64,
+    pub heap_rsrv_size: u64,
+    pub heap_commit_size: u64,
     pub loader_flags: u32,
     pub num_rva: u32,
 }
@@ -81,7 +83,7 @@ pub struct OptionalHeader {
 pub struct SectionHeader {
     pub name: ::std::ffi::CString,
     pub virt_size: u32,
-    pub virt_addr: u32,
+    pub virt_addr: u64,
     pub data_size: u32,
     pub raw_ptr: u32,
     pub reloc_ptr: u32,
