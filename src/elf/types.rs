@@ -464,7 +464,7 @@ pub struct SectionType(pub u32);
 /// Unused entry
 pub const SHT_NULL: SectionType = SectionType(0);
 /// Program data
-pub const SHT_PROGBIGS: SectionType = SectionType(1);
+pub const SHT_PROGBITS: SectionType = SectionType(1);
 /// Symbol table
 pub const SHT_SYMTAB: SectionType = SectionType(2);
 /// String table
@@ -520,7 +520,7 @@ impl fmt::Display for SectionType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let str = match *self {
             SHT_NULL => "SHT_NULL",
-            SHT_PROGBIGS => "SHT_PROGBITS",
+            SHT_PROGBITS => "SHT_PROGBITS",
             SHT_SYMTAB => "SHT_SYMTAB",
             SHT_STRTAB => "SHT_STRTAB",
             SHT_RELA => "SHT_RELA",
