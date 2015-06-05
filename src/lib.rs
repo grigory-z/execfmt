@@ -4,7 +4,7 @@ extern crate byteorder;
 pub mod pe;
 pub mod elf;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub enum Arch {
     X86(Width),
     ARM(Width, Endianness, ARMMode, ARMType),
@@ -12,26 +12,26 @@ pub enum Arch {
     Unknown,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub enum Endianness {
     Little,
     Big,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub enum Width {
     W16,
     W32,
     W64,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub enum ARMMode {
     ARM,
     Thumb,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub enum ARMType {
     ARM,
     MClass,
