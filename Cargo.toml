@@ -1,0 +1,7 @@
+[package]
+name = "execfmt"
+version = "0.1.0"
+authors = ["Jacob Greenfield <jacob.greenfield@siegetechnologies.com>"]
+
+[dependencies]
+byteorder = '*'
