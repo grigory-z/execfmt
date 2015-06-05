@@ -710,6 +710,13 @@ pub struct SectionHeader {
     pub addralign: u64,
     pub entsize: u64,
 }
+
+impl SectionHeader {
+    pub fn address(&self) -> u64 {
+        self.addr
+    }
+}
+
 impl fmt::Display for SectionHeader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Section '{}': type: {} flags: {} addr: {:#010x} offset: {:#06x} size: {:#06x} link: {} info: {:#x} addralign: {} entsize: {}",
