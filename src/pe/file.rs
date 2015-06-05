@@ -2,9 +2,8 @@ use std::io::prelude::*;
 use std::io;
 use std::path::Path;
 use std::fs;
-use std::fmt;
-use std::str;
 use std::ffi;
+use std::fmt;
 use byteorder;
 use byteorder::ReadBytesExt;
 use pe::types;
@@ -197,7 +196,7 @@ impl File {
 
             let mut name_str = name.as_ref();
 
-            if (name.contains(&0)) {
+            if name.contains(&0) {
                 name_str = &name_str[..name.position_elem(&0).unwrap()]
             }
 
@@ -234,7 +233,6 @@ impl File {
                 data: data,
             });
         }
-
 
         Ok(File {
             file_hdr: types::FileHeader {
@@ -291,3 +289,18 @@ impl fmt::Display for File {
     }
 }
 
+impl ::Object for File {
+    fn arch(&self) -> ::Arch {
+        match self.file_hdr.machine {
+            types::PM_AMD6 => ::Arch::X86(
+                match self.opt_hdr.magic {
+                    types::PECLASS32 => ::Width::W32,
+                    types::PECLASS64 => ::Width::W64,
+                    _ => unreachable!(),
+                }),
+            types::PM_ARM => ::Arch::ARM(::Width::W32, ::Endianness::Little, ::ARMMode::ARM, ::ARMType::ARM),
+            _ => ::Arch::Unknown,
+
+        }
+    }
+}

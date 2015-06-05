@@ -7,12 +7,13 @@ pub mod elf;
 #[derive(Clone, Copy)]
 pub enum Arch {
     X86(Width),
-    ARM(Width, Endian, ARMMode, ARMType),
-    PPC(Width, Endian),
+    ARM(Width, Endianness, ARMMode, ARMType),
+    PPC(Width, Endianness),
+    Unknown,
 }
 
 #[derive(Clone, Copy)]
-pub enum Endian {
+pub enum Endianness {
     Little,
     Big,
 }
@@ -35,4 +36,8 @@ pub enum ARMType {
     ARM,
     MClass,
     V8,
+}
+
+pub trait Object {
+    fn arch(&self) -> Arch;
 }
