@@ -8,6 +8,7 @@ use byteorder;
 use byteorder::ReadBytesExt;
 use pe::types;
 use std::collections::HashMap;
+use std::collections::hash_map;
 
 macro_rules! read_u8 {
     ($io:ident) => (
@@ -60,38 +61,36 @@ pub struct File {
 }
 
 impl File {
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<File, io::Error> {
-        let rf = try!(fs::File::open(path));
-        let mut f = io::BufReader::new(rf);
-
-        let dossig = try!(read_u16!(f));
+    pub fn parse<R: io::Read + io::Seek>(mut r: R) -> Result<File, io::Error> {
+        r.seek(io::SeekFrom::Start(0));
+        let dossig = try!(read_u16!(r));
 
         if dossig != types::DOS_HDR_MAG {
             return Err(io::Error::new(io::ErrorKind::Other, "invalid DOS signature"));
         }
 
-        try!(f.seek(io::SeekFrom::Start(0x3c)));
+        try!(r.seek(io::SeekFrom::Start(0x3c)));
 
-        let foff = try!(read_u32!(f));
+        let foff = try!(read_u32!(r));
 
-        try!(f.seek(io::SeekFrom::Start(foff as u64)));
+        try!(r.seek(io::SeekFrom::Start(foff as u64)));
 
         println!("Seeking to {:#x}", foff);
 
-        let pesig = try!(read_u32!(f));
+        let pesig = try!(read_u32!(r));
 
         if pesig != types::PE_HDR_MAG {
             println!("{:#x} sig", pesig);
             return Err(io::Error::new(io::ErrorKind::Other, "invalid PE signature"));
         }
 
-        let machine = types::Machine(try!(read_u16!(f)));
-        let num_sections = try!(read_u16!(f));
-        let create_time = try!(read_u32!(f));
-        let _ = try!(read_u32!(f));
-        let _ = try!(read_u32!(f));
-        let opt_hdr_size = try!(read_u16!(f));
-        let characteristics = try!(read_u16!(f));
+        let machine = types::Machine(try!(read_u16!(r)));
+        let num_sections = try!(read_u16!(r));
+        let create_time = try!(read_u32!(r));
+        let _ = try!(read_u32!(r));
+        let _ = try!(read_u32!(r));
+        let opt_hdr_size = try!(read_u16!(r));
+        let characteristics = try!(read_u16!(r));
 
         println!("machine is {:?}", machine);
         println!("{:?} sections", num_sections);
@@ -103,72 +102,72 @@ impl File {
             return Err(io::Error::new(io::ErrorKind::Other, "optional header missing"));
         }
 
-        let magic = types::Class(try!(read_u16!(f)));
-        let maj_link_ver = try!(read_u8!(f));
-        let min_link_ver = try!(read_u8!(f));
-        let code_size = try!(read_u32!(f));
-        let init_size = try!(read_u32!(f));
-        let uninit_size = try!(read_u32!(f));
-        let enter_addr = try!(read_u32!(f));
-        let base_code = try!(read_u32!(f));
+        let magic = types::Class(try!(read_u16!(r)));
+        let maj_link_ver = try!(read_u8!(r));
+        let min_link_ver = try!(read_u8!(r));
+        let code_size = try!(read_u32!(r));
+        let init_size = try!(read_u32!(r));
+        let uninit_size = try!(read_u32!(r));
+        let enter_addr = try!(read_u32!(r));
+        let base_code = try!(read_u32!(r));
         let base_data = {
             if magic == types::PECLASS64 {
                 0
             } else {
-                try!(read_u32!(f))
+                try!(read_u32!(r))
             }
         };
         let base_img = {
             if magic == types::PECLASS64 {
-                try!(read_u64!(f))
+                try!(read_u64!(r))
             } else {
-                try!(read_u32!(f)) as u64
+                try!(read_u32!(r)) as u64
             }
         };
-        let align_sec = try!(read_u32!(f));
-        let align_file = try!(read_u32!(f));
-        let maj_op_ver = try!(read_u16!(f));
-        let min_op_ver = try!(read_u16!(f));
-        let maj_img_ver = try!(read_u16!(f));
-        let min_img_ver = try!(read_u16!(f));
-        let maj_sub_ver = try!(read_u16!(f));
-        let min_sub_ver = try!(read_u16!(f));
-        let win_ver_val = try!(read_u32!(f));
-        let img_size = try!(read_u32!(f));
-        let hdr_size = try!(read_u32!(f));
-        let chksum = try!(read_u32!(f));
-        let subsys = try!(read_u16!(f));
-        let dll_char = try!(read_u16!(f));
+        let align_sec = try!(read_u32!(r));
+        let align_file = try!(read_u32!(r));
+        let maj_op_ver = try!(read_u16!(r));
+        let min_op_ver = try!(read_u16!(r));
+        let maj_img_ver = try!(read_u16!(r));
+        let min_img_ver = try!(read_u16!(r));
+        let maj_sub_ver = try!(read_u16!(r));
+        let min_sub_ver = try!(read_u16!(r));
+        let win_ver_val = try!(read_u32!(r));
+        let img_size = try!(read_u32!(r));
+        let hdr_size = try!(read_u32!(r));
+        let chksum = try!(read_u32!(r));
+        let subsys = try!(read_u16!(r));
+        let dll_char = try!(read_u16!(r));
         let stack_rsrv_size = {
             if magic == types::PECLASS64 {
-                try!(read_u64!(f))
+                try!(read_u64!(r))
             } else {
-                try!(read_u32!(f)) as u64
+                try!(read_u32!(r)) as u64
             }
         };
         let stack_commit_size = {
             if magic == types::PECLASS64 {
-                try!(read_u64!(f))
+                try!(read_u64!(r))
             } else {
-                try!(read_u32!(f)) as u64
+                try!(read_u32!(r)) as u64
             }
         };
         let heap_rsrv_size = {
             if magic == types::PECLASS64 {
-                try!(read_u64!(f))
+                try!(read_u64!(r))
             } else {
-                try!(read_u32!(f)) as u64
+                try!(read_u32!(r)) as u64
             }
         };
         let heap_commit_size = {
             if magic == types::PECLASS64 {
-                try!(read_u64!(f))
+                try!(read_u64!(r))
             } else {
-                try!(read_u32!(f)) as u64
+                try!(read_u32!(r)) as u64
             }
         };
-        let loader_flags = try!(read_u32!(f));
-        let num_rva = try!(read_u32!(f));
+        let loader_flags = try!(read_u32!(r));
+        let num_rva = try!(read_u32!(r));
 
         println!("bits: {:?}", magic);
         println!("major linker version: {:#x}", maj_link_ver);
@@ -184,7 +183,7 @@ impl File {
         println!("minor OS version: {:#x}", min_op_ver);
         println!("num_rva is {}", num_rva);
 
-        try!(f.seek(io::SeekFrom::Start((foff as u64+opt_hdr_size as u64+0x18))));
+        try!(r.seek(io::SeekFrom::Start((foff as u64+opt_hdr_size as u64+0x18))));
 
         let mut sections_lst = Vec::new();
         let mut sections = HashMap::new();
@@ -192,7 +191,7 @@ impl File {
         for _ in 0..num_sections {
             let mut name = [0u8; 8];
 
-            try!(f.read(&mut name));
+            try!(r.read(&mut name));
 
             let mut name_str = name.as_ref();
 
@@ -200,15 +199,15 @@ impl File {
                 name_str = &name_str[..name.position_elem(&0).unwrap()]
             }
 
-            let virt_size = try!(read_u32!(f));
-            let virt_addr = try!(read_u32!(f)) as u64 + base_img;
-            let data_size = try!(read_u32!(f));
-            let raw_ptr = try!(read_u32!(f));
-            let reloc_ptr = try!(read_u32!(f));
-            let line_no_ptr = try!(read_u32!(f));
-            let num_relocs = try!(read_u16!(f));
-            let num_line_no = try!(read_u16!(f));
-            let characteristics = try!(read_u32!(f));
+            let virt_size = try!(read_u32!(r));
+            let virt_addr = try!(read_u32!(r)) as u64 + base_img;
+            let data_size = try!(read_u32!(r));
+            let raw_ptr = try!(read_u32!(r));
+            let reloc_ptr = try!(read_u32!(r));
+            let line_no_ptr = try!(read_u32!(r));
+            let num_relocs = try!(read_u16!(r));
+            let num_line_no = try!(read_u16!(r));
+            let characteristics = try!(read_u32!(r));
             let name =  ffi::CString::new(name_str).unwrap();
 
             sections_lst.push(types::SectionHeader {
@@ -226,8 +225,8 @@ impl File {
         }
 
         for shdr in sections_lst.into_iter() {
-            try!(f.seek(io::SeekFrom::Start(shdr.raw_ptr as u64)));
-            let data: Vec<u8> = io::Read::by_ref(&mut f).bytes().map(|x| x.unwrap()).take(shdr.virt_size as usize).collect();
+            try!(r.seek(io::SeekFrom::Start(shdr.raw_ptr as u64)));
+            let data: Vec<u8> = io::Read::by_ref(&mut r).bytes().map(|x| x.unwrap()).take(shdr.virt_size as usize).collect();
             sections.insert(String::from_str(shdr.name.to_str().unwrap()), Section {
                 hdr: shdr,
                 data: data,
@@ -297,6 +296,18 @@ impl ::Object for File {
             types::PM_ARM => ::Arch::ARM(::Width::W32, ::Endianness::Little, ::ARMMode::ARM, ::ARMType::ARM),
             _ => ::Arch::Unknown,
 
+        }
+    }
+    fn get_section(&self, name: &str) -> Option<::Section> {
+        if let Some(sect) = self.sections.get(name) {
+            Some(::Section {
+                name: String::from_str(sect.hdr.name.to_str().unwrap()), // FIXME don't construct another string here
+                addr: sect.hdr.virt_addr,
+                size: sect.hdr.virt_size as u64,
+                data: sect.data.clone(), // FIXME don't clone data, store sections
+            })
+        } else {
+            None
         }
     }
 }

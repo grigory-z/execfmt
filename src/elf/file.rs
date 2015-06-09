@@ -7,6 +7,7 @@ use byteorder;
 use byteorder::ReadBytesExt;
 use elf::types;
 use std::collections::HashMap;
+use std::collections::hash_map;
 
 macro_rules! read_u64 {
     ($data:ident, $io:ident) => (
@@ -66,12 +67,10 @@ pub struct Section {
 }
 
 impl File {
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<File, io::Error> {
-        let rf = try!(fs::File::open(path));
-        let mut f = io::BufReader::new(rf);
-
+    pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<File, io::Error> {
+        r.seek(io::SeekFrom::Start(0));
         let mut eident = [0u8; types::EI_NIDENT];
-        try!(f.read(&mut eident));
+        try!(r.read(&mut eident));
 
         if eident[0..4] != types::ELFMAG {
             return Err(io::Error::new(io::ErrorKind::Other, "invalid magic number"));
@@ -82,9 +81,9 @@ impl File {
         let os_abi = types::OsAbi(eident[types::EI_OSABI]);
         let abi_version = eident[types::EI_ABIVERSION];
 
-        let elf_type = types::Type(try!(read_u16!(data, f)));
-        let machine = types::Machine(try!(read_u16!(data, f)));
-        let version = types::Version(try!(read_u32!(data, f)));
+        let elf_type = types::Type(try!(read_u16!(data, r)));
+        let machine = types::Machine(try!(read_u16!(data, r)));
+        let version = types::Version(try!(read_u32!(data, r)));
 
         let mut entry: u64;
         let mut phoff: u64;
@@ -92,32 +91,32 @@ impl File {
 
         match class {
             types::ELFCLASS32 => {
-                entry = try!(read_u32!(data, f)) as u64;
-                phoff = try!(read_u32!(data, f)) as u64;
-                shoff = try!(read_u32!(data, f)) as u64;
+                entry = try!(read_u32!(data, r)) as u64;
+                phoff = try!(read_u32!(data, r)) as u64;
+                shoff = try!(read_u32!(data, r)) as u64;
             }
             types::ELFCLASS64 => {
-                entry = try!(read_u64!(data, f));
-                phoff = try!(read_u64!(data, f));
-                shoff = try!(read_u64!(data, f));
+                entry = try!(read_u64!(data, r));
+                phoff = try!(read_u64!(data, r));
+                shoff = try!(read_u64!(data, r));
             }
             _ => return Err(io::Error::new(io::ErrorKind::Other, "invalid class")),
         }
 
-        let flags = try!(read_u32!(data, f));
-        let ehsize = try!(read_u16!(data, f));
-        let phentsize = try!(read_u16!(data, f));
-        let phnum = try!(read_u16!(data, f));
-        let shentsize = try!(read_u16!(data, f));
-        let shnum = try!(read_u16!(data, f));
-        let shstrndx = try!(read_u16!(data, f));
+        let flags = try!(read_u32!(data, r));
+        let ehsize = try!(read_u16!(data, r));
+        let phentsize = try!(read_u16!(data, r));
+        let phnum = try!(read_u16!(data, r));
+        let shentsize = try!(read_u16!(data, r));
+        let shnum = try!(read_u16!(data, r));
+        let shstrndx = try!(read_u16!(data, r));
 
         let mut sections = HashMap::new();
         let mut sections_lst = Vec::new();
         let mut sections_data = Vec::new();
 
         let mut name_idxs = Vec::new();
-        try!(f.seek(io::SeekFrom::Start(shoff)));
+        try!(r.seek(io::SeekFrom::Start(shoff)));
 
         for _ in 0..shnum {
             let name = String::new();
@@ -131,28 +130,28 @@ impl File {
             let mut addralign: u64;
             let mut entsize: u64;
 
-            name_idxs.push(try!(read_u32!(data, f)));
-            shtype = types::SectionType(try!(read_u32!(data, f)));
+            name_idxs.push(try!(read_u32!(data, r)));
+            shtype = types::SectionType(try!(read_u32!(data, r)));
             match class {
                 types::ELFCLASS32 => {
-                    flags = types::SectionFlag(try!(read_u32!(data, f)) as u64);
-                    addr = try!(read_u32!(data, f)) as u64;
-                    offset = try!(read_u32!(data, f)) as u64;
-                    size = try!(read_u32!(data, f)) as u64;
-                    link = try!(read_u32!(data, f));
-                    info = try!(read_u32!(data, f));
-                    addralign = try!(read_u32!(data, f)) as u64;
-                    entsize = try!(read_u32!(data, f)) as u64;
+                    flags = types::SectionFlag(try!(read_u32!(data, r)) as u64);
+                    addr = try!(read_u32!(data, r)) as u64;
+                    offset = try!(read_u32!(data, r)) as u64;
+                    size = try!(read_u32!(data, r)) as u64;
+                    link = try!(read_u32!(data, r));
+                    info = try!(read_u32!(data, r));
+                    addralign = try!(read_u32!(data, r)) as u64;
+                    entsize = try!(read_u32!(data, r)) as u64;
                 }
                 types::ELFCLASS64 => {
-                    flags = types::SectionFlag(try!(read_u64!(data, f)));
-                    addr = try!(read_u64!(data, f));
-                    offset = try!(read_u64!(data, f));
-                    size = try!(read_u64!(data, f));
-                    link = try!(read_u32!(data, f));
-                    info = try!(read_u32!(data, f));
-                    addralign = try!(read_u64!(data, f));
-                    entsize = try!(read_u64!(data, f));
+                    flags = types::SectionFlag(try!(read_u64!(data, r)));
+                    addr = try!(read_u64!(data, r));
+                    offset = try!(read_u64!(data, r));
+                    size = try!(read_u64!(data, r));
+                    link = try!(read_u32!(data, r));
+                    info = try!(read_u32!(data, r));
+                    addralign = try!(read_u64!(data, r));
+                    entsize = try!(read_u64!(data, r));
                 }
                 _ => unreachable!(),
             }
@@ -174,8 +173,8 @@ impl File {
         for i in 0..shnum {
             let off = sections_lst[i as usize].offset;
             let size = sections_lst[i as usize].size;
-            try!(f.seek(io::SeekFrom::Start(off)));
-            let data: Vec<u8> = io::Read::by_ref(&mut f).bytes().map(|x| x.unwrap()).take(size as usize).collect();
+            try!(r.seek(io::SeekFrom::Start(off)));
+            let data: Vec<u8> = io::Read::by_ref(r).bytes().map(|x| x.unwrap()).take(size as usize).collect();
             sections_data.push(data);
         }
 
@@ -207,15 +206,6 @@ impl File {
     }
 }
 
-impl Section {
-    pub fn header(&self) -> &types::SectionHeader {
-        &self.hdr
-    }
-    pub fn data(&self) -> &Vec<u8> {
-        &self.data
-    }
-}
-
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(writeln!(f, "ELF file"));
@@ -225,6 +215,33 @@ impl fmt::Display for File {
             try!(write!(f, "{}", section));
         }
         Ok(())
+    }
+}
+
+impl ::Object for File {
+    fn arch(&self) -> ::Arch {
+        ::Arch::Unknown
+    }
+    fn get_section(&self, name: &str) -> Option<::Section> {
+        if let Some(sect) = self.sections.get(name) {
+            Some(::Section {
+                name: sect.hdr.name.clone(),
+                addr: sect.hdr.addr,
+                size: sect.hdr.size,
+                data: sect.data.clone(), // FIXME don't clone data, store sections
+            })
+        } else {
+            None
+        }
+    }
+}
+
+impl Section {
+    pub fn header(&self) -> &types::SectionHeader {
+        &self.hdr
+    }
+    pub fn data(&self) -> &Vec<u8> {
+        &self.data
     }
 }
 

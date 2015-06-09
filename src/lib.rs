@@ -4,6 +4,8 @@ extern crate byteorder;
 pub mod pe;
 pub mod elf;
 
+use std::io;
+
 #[derive(Clone, Debug, Copy)]
 pub enum Arch {
     X86(Width),
@@ -40,4 +42,22 @@ pub enum ARMType {
 
 pub trait Object {
     fn arch(&self) -> Arch;
+    fn get_section(&self, name: &str) -> Option<Section>;
+}
+
+pub struct Section {
+    name: String,
+    addr: u64,
+    size: u64,
+    data: Vec<u8>,
+}
+
+pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Option<Box<Object>> {
+    if let Ok(x) = elf::File::parse(r) {
+        Some(Box::new(x))
+    } else if let Ok(x) = pe::File::parse(r) {
+        Some(Box::new(x))
+    } else {
+        None
+    }
 }
