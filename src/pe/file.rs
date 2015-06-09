@@ -292,12 +292,8 @@ impl fmt::Display for File {
 impl ::Object for File {
     fn arch(&self) -> ::Arch {
         match self.file_hdr.machine {
-            types::PM_AMD6 => ::Arch::X86(
-                match self.opt_hdr.magic {
-                    types::PECLASS32 => ::Width::W32,
-                    types::PECLASS64 => ::Width::W64,
-                    _ => unreachable!(),
-                }),
+            types::PM_AMD6 => ::Arch::X86(::Width::W64),
+            types::PM_I386 => ::Arch::X86(::Width::W32),
             types::PM_ARM => ::Arch::ARM(::Width::W32, ::Endianness::Little, ::ARMMode::ARM, ::ARMType::ARM),
             _ => ::Arch::Unknown,
 
