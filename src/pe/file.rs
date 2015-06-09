@@ -78,8 +78,8 @@ impl File {
         let machine = types::Machine(try!(read_u16!(r)));
         let num_sections = try!(read_u16!(r));
         let create_time = try!(read_u32!(r));
-        let _ = try!(read_u32!(r));
-        let _ = try!(read_u32!(r));
+        let sym_tab_ptr = try!(read_u32!(r));
+        let num_sym = try!(read_u32!(r));
         let opt_hdr_size = try!(read_u16!(r));
         let characteristics = try!(read_u16!(r));
 
@@ -229,6 +229,8 @@ impl File {
                 machine: machine,
                 num_sections: num_sections,
                 create_time: create_time,
+                sym_tab_ptr: sym_tab_ptr,
+                num_sym: num_sym,
                 opt_hdr_size: opt_hdr_size,
                 characteristics: characteristics,
             },

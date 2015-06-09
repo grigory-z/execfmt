@@ -116,6 +116,8 @@ pub struct FileHeader {
     pub machine: Machine,
     pub num_sections: u16,
     pub create_time: u32,
+    pub sym_tab_ptr: u32,
+    pub num_sym: u32,
     pub opt_hdr_size: u16,
     pub characteristics: u16,
 }
