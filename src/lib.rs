@@ -52,6 +52,15 @@ pub struct Section {
     data: Vec<u8>,
 }
 
+impl Section {
+    pub fn data(&self) -> &Vec<u8> {
+        &self.data
+    }
+    pub fn addr(&self) -> u64 {
+        self.addr
+    }
+}
+
 pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Option<Box<Object>> {
     if let Ok(x) = elf::File::parse(r) {
         Some(Box::new(x))

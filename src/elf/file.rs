@@ -236,15 +236,6 @@ impl ::Object for File {
     }
 }
 
-impl Section {
-    pub fn header(&self) -> &types::SectionHeader {
-        &self.hdr
-    }
-    pub fn data(&self) -> &Vec<u8> {
-        &self.data
-    }
-}
-
 impl fmt::Display for Section {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.hdr)
