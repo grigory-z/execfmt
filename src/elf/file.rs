@@ -1,19 +1,22 @@
 use std::io::prelude::*;
 use std::io;
-use std::path::Path;
-use std::fs;
 use std::fmt;
 use byteorder;
 use byteorder::ReadBytesExt;
 use elf::types;
 use std::collections::HashMap;
-use std::collections::hash_map;
 
-macro_rules! read_u64 {
+macro_rules! read_u8 {
+    ($data:ident, $io:ident) => (
+        $io.read_u8()
+    );
+}
+
+macro_rules! read_u16 {
     ($data:ident, $io:ident) => (
         match $data {
-            types::ELFDATA2LSB => { $io.read_u64::<byteorder::LittleEndian>() },
-            types::ELFDATA2MSB => { $io.read_u64::<byteorder::BigEndian>()},
+            types::ELFDATA2LSB => { $io.read_u16::<byteorder::LittleEndian>() },
+            types::ELFDATA2MSB => { $io.read_u16::<byteorder::BigEndian>()},
             _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
         }
     );
@@ -29,11 +32,11 @@ macro_rules! read_u32 {
     );
 }
 
-macro_rules! read_u16 {
+macro_rules! read_u64 {
     ($data:ident, $io:ident) => (
         match $data {
-            types::ELFDATA2LSB => { $io.read_u16::<byteorder::LittleEndian>() },
-            types::ELFDATA2MSB => { $io.read_u16::<byteorder::BigEndian>()},
+            types::ELFDATA2LSB => { $io.read_u64::<byteorder::LittleEndian>() },
+            types::ELFDATA2MSB => { $io.read_u64::<byteorder::BigEndian>()},
             _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
         }
     );
@@ -59,6 +62,7 @@ fn get_elf_string(data: &Vec<u8>, start: usize) -> String {
 pub struct File {
     hdr: types::FileHeader,
     sections: HashMap<String, Section>,
+    symbols: HashMap<String, u64>,
 }
 
 pub struct Section {
@@ -67,8 +71,9 @@ pub struct Section {
 }
 
 impl File {
+    #[allow(unused_variables,unused_assignments)]
     pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<File, io::Error> {
-        r.seek(io::SeekFrom::Start(0));
+        try!(r.seek(io::SeekFrom::Start(0)));
         let mut eident = [0u8; types::EI_NIDENT];
         try!(r.read(&mut eident));
 
@@ -178,6 +183,34 @@ impl File {
             sections_data.push(data);
         }
 
+        let mut symbols = HashMap::new();
+
+        for (i, section) in sections_lst.iter().enumerate() {
+            if section.shtype == types::SHT_SYMTAB {
+                let mut cur = io::Cursor::new(sections_data[i].as_slice());
+                for i in 0..(section.size / section.entsize) {
+                    try!(cur.seek(io::SeekFrom::Start(i * section.entsize)));
+                    let mut sym_name;
+                    let mut sym_addr;
+                    match class {
+                        types::ELFCLASS32 => {
+                            sym_name = try!(read_u32!(data, cur));
+                            sym_addr = try!(read_u32!(data, cur)) as u64;
+                        }
+                        types::ELFCLASS64 => {
+                            sym_name = try!(read_u32!(data, cur));
+                            let _ = try!(read_u8!(data, cur));
+                            let _ = try!(read_u8!(data, cur));
+                            let _ = try!(read_u16!(data, cur));
+                            sym_addr = try!(read_u64!(data, cur));
+                        }
+                        _ => unreachable!(),
+                    }
+                    symbols.insert(get_elf_string(&sections_data[section.link as usize], sym_name as usize), sym_addr);
+                }
+            }
+        }
+
         for i in 0..shnum {
             sections_lst[i as usize].name = get_elf_string(&sections_data[shstrndx as usize], name_idxs[i as usize] as usize);
         }
@@ -186,7 +219,7 @@ impl File {
             sections.insert(hdr.name.clone(), Section { hdr: hdr, data: data });
         }
 
-        Ok(File {
+        let x = File {
             hdr: types::FileHeader {
                 class: class,
                 data: data,
@@ -198,11 +231,17 @@ impl File {
                 entrypoint: entry,
             },
             sections: sections,
-        })
+            symbols: symbols,
+        };
+        println!("{}", x);
+        Ok(x)
     }
 
     pub fn sections(&self) -> &HashMap<String, Section> {
         &self.sections
+    }
+    pub fn symbols(&self) -> &HashMap<String, u64> {
+        &self.symbols
     }
 }
 
@@ -213,6 +252,10 @@ impl fmt::Display for File {
         try!(writeln!(f, "ELF sections"));
         for section in self.sections.values() {
             try!(write!(f, "{}", section));
+        }
+        try!(writeln!(f, "ELF symbols"));
+        for (symbol, addr) in &self.symbols {
+            try!(writeln!(f, "{}: {:#x}", symbol, addr));
         }
         Ok(())
     }

@@ -168,6 +168,15 @@ pub struct SectionHeader {
     pub characteristics: u32,
 }
 
+pub struct Symbol {
+    pub name: ::std::ffi::CString,
+    pub value: u32,
+    pub sect_no: u16,
+    pub sym_type: u16,
+    pub storage_class: u8,
+    pub num_aux_sym: u8,
+}
+
 impl SectionHeader {
     pub fn address(&self) -> u64 {
         self.virt_addr as u64

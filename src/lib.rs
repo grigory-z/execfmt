@@ -1,4 +1,4 @@
-#![feature(cstr_to_str,collections)]
+#![feature(cstr_to_str,collections,convert)]
 extern crate byteorder;
 
 pub mod pe;
@@ -53,11 +53,17 @@ pub struct Section {
 }
 
 impl Section {
-    pub fn data(&self) -> &Vec<u8> {
-        &self.data
+    pub fn name(&self) -> &str {
+        &self.name
     }
     pub fn addr(&self) -> u64 {
         self.addr
+    }
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 }
 
