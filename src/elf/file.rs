@@ -220,7 +220,25 @@ impl fmt::Display for File {
 
 impl ::Object for File {
     fn arch(&self) -> ::Arch {
-        ::Arch::Unknown
+        let width = match self.hdr.class {
+            types::ELFCLASS32 => ::Width::W32,
+            types::ELFCLASS64 => ::Width::W64,
+            _ => return ::Arch::Unknown,
+        };
+        let endian = match self.hdr.data {
+            types::ELFDATA2LSB => ::Endianness::Little,
+            types::ELFDATA2MSB => ::Endianness::Big,
+            _ => return ::Arch::Unknown,
+        };
+        match self.hdr.machine {
+            types::EM_386 => ::Arch::X86(::Width::W32),
+            types::EM_X86_64 => ::Arch::X86(::Width::W64),
+            types::EM_PPC => ::Arch::PPC(::Width::W32, endian),
+            types::EM_PPC64 => ::Arch::PPC(::Width::W64, endian),
+            types::EM_ARM => ::Arch::ARM(::Width::W32, endian, ::ARMMode::ARM, ::ARMType::ARM),
+            types::EM_AARCH64 => ::Arch::ARM(::Width::W64, endian, ::ARMMode::ARM, ::ARMType::ARM),
+            _ => ::Arch::Unknown,
+        }
     }
     fn get_section(&self, name: &str) -> Option<::Section> {
         if let Some(sect) = self.sections.get(name) {
