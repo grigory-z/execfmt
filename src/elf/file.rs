@@ -254,8 +254,10 @@ impl fmt::Display for File {
             try!(write!(f, "{}", section));
         }
         try!(writeln!(f, "ELF symbols"));
-        for (symbol, addr) in &self.symbols {
-            try!(writeln!(f, "{}: {:#x}", symbol, addr));
+        let mut x: Vec<&String> = self.symbols.keys().collect();
+        x.sort();
+        for key in x.into_iter() {
+            try!(writeln!(f, "{}: {:#x}", key, self.symbols[key]));
         }
         Ok(())
     }
