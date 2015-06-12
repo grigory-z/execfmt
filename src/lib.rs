@@ -46,7 +46,7 @@ impl<'a> From<&'a str> for Error {
     fn from(s: &'a str) -> Error {
         Error {
             inner: None,
-            desc: String::from_str(s),
+            desc: String::from(s),
         }
     }
 }
@@ -112,12 +112,12 @@ impl Section {
     }
 }
 
-pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<Box<Object>, Error> {
+pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<Box<Object>, Box<error::Error>> {
     if let Ok(x) = elf::File::parse(r) {
         Ok(Box::new(x))
     } else if let Ok(x) = pe::File::parse(r) {
         Ok(Box::new(x))
     } else {
-        Err(Error::from("Invalid format"))
+        Err(Box::new(Error::from("Invalid format")))
     }
 }

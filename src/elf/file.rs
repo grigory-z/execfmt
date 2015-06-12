@@ -1,10 +1,12 @@
 use std::io::prelude::*;
 use std::io;
 use std::fmt;
+use std::error;
 use byteorder;
 use byteorder::ReadBytesExt;
 use elf::types;
 use std::collections::HashMap;
+use ::Error;
 
 macro_rules! read_u8 {
     ($data:ident, $io:ident) => (
@@ -17,7 +19,7 @@ macro_rules! read_u16 {
         match $data {
             types::ELFDATA2LSB => { $io.read_u16::<byteorder::LittleEndian>() },
             types::ELFDATA2MSB => { $io.read_u16::<byteorder::BigEndian>()},
-            _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
+            _ => { try!(Err(Error::from("invalid endianness"))) },
         }
     );
 }
@@ -27,7 +29,7 @@ macro_rules! read_u32 {
         match $data {
             types::ELFDATA2LSB => { $io.read_u32::<byteorder::LittleEndian>() },
             types::ELFDATA2MSB => { $io.read_u32::<byteorder::BigEndian>()},
-            _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
+            _ => { try!(Err(Error::from("invalid endianness"))) },
         }
     );
 }
@@ -37,7 +39,7 @@ macro_rules! read_u64 {
         match $data {
             types::ELFDATA2LSB => { $io.read_u64::<byteorder::LittleEndian>() },
             types::ELFDATA2MSB => { $io.read_u64::<byteorder::BigEndian>()},
-            _ => { return Err(io::Error::new(io::ErrorKind::Other, "invalid endianness")) },
+            _ => { try!(Err(Error::from("invalid endianness"))) },
         }
     );
 }
@@ -72,13 +74,13 @@ pub struct Section {
 
 impl File {
     #[allow(unused_variables,unused_assignments)]
-    pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<File, io::Error> {
+    pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<File, Box<error::Error>> {
         try!(r.seek(io::SeekFrom::Start(0)));
         let mut eident = [0u8; types::EI_NIDENT];
         try!(r.read(&mut eident));
 
         if eident[0..4] != types::ELFMAG {
-            return Err(io::Error::new(io::ErrorKind::Other, "invalid magic number"));
+            try!(Err(Error::from("invalid magic number")));
         }
 
         let class = types::Class(eident[types::EI_CLASS]);
@@ -105,7 +107,7 @@ impl File {
                 phoff = try!(read_u64!(data, r));
                 shoff = try!(read_u64!(data, r));
             }
-            _ => return Err(io::Error::new(io::ErrorKind::Other, "invalid class")),
+            _ => return Err(Box::new(Error::from("invalid class"))),
         }
 
         let flags = try!(read_u32!(data, r));
@@ -265,11 +267,6 @@ impl fmt::Display for File {
 
 impl ::Object for File {
     fn arch(&self) -> ::Arch {
-        let width = match self.hdr.class {
-            types::ELFCLASS32 => ::Width::W32,
-            types::ELFCLASS64 => ::Width::W64,
-            _ => return ::Arch::Unknown,
-        };
         let endian = match self.hdr.data {
             types::ELFDATA2LSB => ::Endianness::Little,
             types::ELFDATA2MSB => ::Endianness::Big,

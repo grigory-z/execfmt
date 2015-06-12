@@ -2,10 +2,12 @@ use std::io::prelude::*;
 use std::io;
 use std::ffi;
 use std::fmt;
+use std::error;
 use byteorder;
 use byteorder::ReadBytesExt;
 use pe::types;
 use std::collections::HashMap;
+use ::Error;
 
 macro_rules! read_u8 {
     ($io:ident) => (
@@ -46,16 +48,15 @@ pub struct File {
     file_hdr: types::FileHeader,
     opt_hdr: types::OptionalHeader,
     sections: HashMap<String, Section>,
-    symbols: HashMap<String, u64>,
 }
 
 impl File {
-    pub fn parse<R: io::Read + io::Seek>(mut r: R) -> Result<File, io::Error> {
+    pub fn parse<R: io::Read + io::Seek>(mut r: R) -> Result<File, Box<error::Error>> {
         try!(r.seek(io::SeekFrom::Start(0)));
         let dossig = try!(read_u16!(r));
 
         if dossig != types::DOS_HDR_MAG {
-            return Err(io::Error::new(io::ErrorKind::Other, "invalid DOS signature"));
+            try!(Err(Error::from("invalid DOS signature")));
         }
 
         try!(r.seek(io::SeekFrom::Start(0x3c)));
@@ -70,7 +71,7 @@ impl File {
 
         if pesig != types::PE_HDR_MAG {
             println!("{:#x} sig", pesig);
-            return Err(io::Error::new(io::ErrorKind::Other, "invalid PE signature"));
+            try!(Err(Error::from("invalid PE signature")));
         }
 
         let machine = types::Machine(try!(read_u16!(r)));
@@ -88,7 +89,7 @@ impl File {
         println!("characteristics: {:?}", characteristics);
 
         if opt_hdr_size == 0 {
-            return Err(io::Error::new(io::ErrorKind::Other, "optional header missing"));
+            try!(Err(Error::from("optional header missing")));
         }
 
         let magic = types::Class(try!(read_u16!(r)));
@@ -216,13 +217,12 @@ impl File {
         for shdr in sections_lst.into_iter() {
             try!(r.seek(io::SeekFrom::Start(shdr.raw_ptr as u64)));
             let data: Vec<u8> = io::Read::by_ref(&mut r).bytes().map(|x| x.unwrap()).take(shdr.virt_size as usize).collect();
-            sections.insert(String::from_str(shdr.name.to_str().unwrap()), Section {
+            sections.insert(String::from(shdr.name.to_str().unwrap()), Section {
                 hdr: shdr,
                 data: data,
             });
         }
 
-        let symbols = HashMap::new();
         try!(r.seek(io::SeekFrom::Start(sym_tab_ptr as u64)));
         println!("symbol table addr: {}", sym_tab_ptr);
 
@@ -282,7 +282,6 @@ impl File {
                 num_rva: num_rva,
             },
             sections: sections,
-            symbols: symbols,
         })
     }
 
@@ -310,7 +309,7 @@ impl ::Object for File {
     fn get_section(&self, name: &str) -> Option<::Section> {
         if let Some(sect) = self.sections.get(name) {
             Some(::Section {
-                name: String::from_str(sect.hdr.name.to_str().unwrap()), // FIXME don't construct another string here
+                name: String::from(sect.hdr.name.to_str().unwrap()), // FIXME don't construct another string here
                 addr: sect.hdr.virt_addr,
                 size: sect.hdr.virt_size as u64,
                 data: sect.data.clone(), // FIXME don't clone data, store sections
