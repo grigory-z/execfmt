@@ -5,6 +5,51 @@ pub mod pe;
 pub mod elf;
 
 use std::io;
+use std::error;
+use std::fmt;
+
+pub struct Error {
+    inner: Option<Box<error::Error>>,
+    desc: String,
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        &self.desc
+    }
+    fn cause(&self) -> Option<&error::Error> {
+        self.inner.as_ref().map(|x| &**x)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        write!(w, "Error: {}{}", self.desc, match self.inner {
+            Some(ref x) => {
+                format!(" ({})", x.description())
+            }
+            None => format!(""),
+        })
+    }
+}
+
+impl fmt::Debug for Error {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        write!(w, "execfmt error: desc: {} inner: {}", self.desc, match self.inner {
+            Some(ref x) => x.description(),
+            None => "None",
+        })
+    }
+}
+
+impl<'a> From<&'a str> for Error {
+    fn from(s: &'a str) -> Error {
+        Error {
+            inner: None,
+            desc: String::from_str(s),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Copy)]
 pub enum Arch {
@@ -67,12 +112,12 @@ impl Section {
     }
 }
 
-pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Option<Box<Object>> {
+pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<Box<Object>, Error> {
     if let Ok(x) = elf::File::parse(r) {
-        Some(Box::new(x))
+        Ok(Box::new(x))
     } else if let Ok(x) = pe::File::parse(r) {
-        Some(Box::new(x))
+        Ok(Box::new(x))
     } else {
-        None
+        Err(Error::from("Invalid format"))
     }
 }
