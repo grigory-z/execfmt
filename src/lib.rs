@@ -1,4 +1,4 @@
-#![feature(cstr_to_str,collections,convert)]
+#![feature(cstr_to_str,slice_position_elem,convert)]
 extern crate byteorder;
 
 pub mod pe;
