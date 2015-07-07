@@ -1,6 +1,6 @@
 [package]
 name = "execfmt"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Jacob Greenfield <jacob.greenfield@siegetechnologies.com>"]
 
 [dependencies]

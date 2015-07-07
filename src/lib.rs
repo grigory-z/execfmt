@@ -94,6 +94,7 @@ pub trait Object {
 pub struct Section {
     name: String,
     addr: u64,
+    offset: u64,
     size: u64,
     data: Vec<u8>,
 }
@@ -104,6 +105,9 @@ impl Section {
     }
     pub fn addr(&self) -> u64 {
         self.addr
+    }
+    pub fn offset(&self) -> u64 {
+        self.offset
     }
     pub fn size(&self) -> u64 {
         self.size
@@ -118,6 +122,7 @@ impl default::Default for Section {
         Section {
             name: String::from(""),
             addr: 0,
+            offset: 0,
             size: u64::max_value(),
             data: Vec::new(),
         }

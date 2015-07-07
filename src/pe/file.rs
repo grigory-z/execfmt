@@ -311,6 +311,7 @@ impl ::Object for File {
             Some(::Section {
                 name: String::from(sect.hdr.name.to_str().unwrap()), // FIXME don't construct another string here
                 addr: sect.hdr.virt_addr,
+                offset: sect.hdr.virt_addr - self.opt_hdr.base_img,
                 size: sect.hdr.virt_size as u64,
                 data: sect.data.clone(), // FIXME don't clone data, store sections
             })

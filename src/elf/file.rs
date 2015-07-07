@@ -287,6 +287,7 @@ impl ::Object for File {
             Some(::Section {
                 name: sect.hdr.name.clone(),
                 addr: sect.hdr.addr,
+                offset: sect.hdr.offset,
                 size: sect.hdr.size,
                 data: sect.data.clone(), // FIXME don't clone data, store sections
             })
