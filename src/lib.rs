@@ -7,6 +7,7 @@ pub mod elf;
 use std::io;
 use std::error;
 use std::fmt;
+use std::default;
 
 pub struct Error {
     inner: Option<Box<error::Error>>,
@@ -109,6 +110,17 @@ impl Section {
     }
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+}
+
+impl default::Default for Section {
+    fn default() -> Section {
+        Section {
+            name: String::from(""),
+            addr: 0,
+            size: u64::max_value(),
+            data: Vec::new(),
+        }
     }
 }
 
