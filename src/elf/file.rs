@@ -92,9 +92,9 @@ impl File {
         let machine = types::Machine(try!(read_u16!(data, r)));
         let version = types::Version(try!(read_u32!(data, r)));
 
-        let mut entry: u64;
-        let mut phoff: u64;
-        let mut shoff: u64;
+        let entry: u64;
+        let phoff: u64;
+        let shoff: u64;
 
         match class {
             types::ELFCLASS32 => {
@@ -127,15 +127,15 @@ impl File {
 
         for _ in 0..shnum {
             let name = String::new();
-            let mut shtype: types::SectionType;
-            let mut flags: types::SectionFlag;
-            let mut addr: u64;
-            let mut offset: u64;
-            let mut size: u64;
-            let mut link: u32;
-            let mut info: u32;
-            let mut addralign: u64;
-            let mut entsize: u64;
+            let shtype: types::SectionType;
+            let flags: types::SectionFlag;
+            let addr: u64;
+            let offset: u64;
+            let size: u64;
+            let link: u32;
+            let info: u32;
+            let addralign: u64;
+            let entsize: u64;
 
             name_idxs.push(try!(read_u32!(data, r)));
             shtype = types::SectionType(try!(read_u32!(data, r)));
@@ -192,8 +192,8 @@ impl File {
                 let mut cur = io::Cursor::new(sections_data[i].as_slice());
                 for i in 0..(section.size / section.entsize) {
                     try!(cur.seek(io::SeekFrom::Start(i * section.entsize)));
-                    let mut sym_name;
-                    let mut sym_addr;
+                    let sym_name;
+                    let sym_addr;
                     match class {
                         types::ELFCLASS32 => {
                             sym_name = try!(read_u32!(data, cur));
