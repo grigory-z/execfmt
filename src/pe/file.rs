@@ -65,12 +65,9 @@ impl File {
 
         try!(r.seek(io::SeekFrom::Start(foff as u64)));
 
-        println!("Seeking to {:#x}", foff);
-
         let pesig = try!(read_u32!(r));
 
         if pesig != types::PE_HDR_MAG {
-            println!("{:#x} sig", pesig);
             try!(Err(Error::from("invalid PE signature")));
         }
 
@@ -81,12 +78,6 @@ impl File {
         let num_sym = try!(read_u32!(r));
         let opt_hdr_size = try!(read_u16!(r));
         let characteristics = try!(read_u16!(r));
-
-        println!("machine is {:?}", machine);
-        println!("{:?} sections", num_sections);
-        println!("time is: {:?}", create_time);
-        println!("optional header size: {:?}", opt_hdr_size);
-        println!("characteristics: {:?}", characteristics);
 
         if opt_hdr_size == 0 {
             try!(Err(Error::from("optional header missing")));
@@ -159,20 +150,6 @@ impl File {
         let loader_flags = try!(read_u32!(r));
         let num_rva = try!(read_u32!(r));
 
-        println!("bits: {:?}", magic);
-        println!("major linker version: {:#x}", maj_link_ver);
-        println!("minor linker version: {:#x}", min_link_ver);
-        println!("code size: {:#x}", code_size);
-        println!("initialized size: {:#x}", init_size);
-        println!("uninitialized size: {:#x}", uninit_size);
-        println!("entry point address: {:#x}", enter_addr);
-        println!("base of code: {:#x}", base_code);
-        println!("base of data: {:#x}", base_data);
-        println!("base of image: {:#x}", base_img);
-        println!("major OS version: {:#x}", maj_op_ver);
-        println!("minor OS version: {:#x}", min_op_ver);
-        println!("num_rva is {}", num_rva);
-
         try!(r.seek(io::SeekFrom::Start((foff as u64+opt_hdr_size as u64+0x18))));
 
         let mut sections_lst = Vec::new();
@@ -224,7 +201,6 @@ impl File {
         }
 
         try!(r.seek(io::SeekFrom::Start(sym_tab_ptr as u64)));
-        println!("symbol table addr: {}", sym_tab_ptr);
 
         let tmp_name = try!(read_u64!(r));
 
@@ -234,9 +210,8 @@ impl File {
 
             try!(r.seek(io::SeekFrom::Start(str_tab_ptr as u64 + str_tab_off as u64)));
 
-            println!("LARGE STRING");
         } else {
-            println!("{:?}", tmp_name);
+            //TODO implement this
         }
 
         Ok(File {

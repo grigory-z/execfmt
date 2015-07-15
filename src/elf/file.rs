@@ -235,7 +235,6 @@ impl File {
             sections: sections,
             symbols: symbols,
         };
-        println!("{}", x);
         Ok(x)
     }
 
