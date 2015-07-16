@@ -7,7 +7,7 @@ use byteorder;
 use byteorder::ReadBytesExt;
 use pe::types;
 use std::collections::HashMap;
-use ::Error;
+use {Error, Object, Section};
 
 macro_rules! read_u8 {
     ($io:ident) => (
@@ -33,21 +33,10 @@ macro_rules! read_u64 {
     );
 }
 
-pub struct Section {
-    hdr: types::SectionHeader,
-    data: Vec<u8>,
-}
-
-impl fmt::Display for Section {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "PE section '{:?}' from {:#x} to {:#x}", self.hdr.name, self.hdr.virt_addr, self.hdr.virt_addr + self.hdr.virt_size as u64)
-    }
-}
-
 pub struct File {
-    file_hdr: types::FileHeader,
-    opt_hdr: types::OptionalHeader,
-    sections: HashMap<String, Section>,
+    pub file_hdr: types::FileHeader,
+    pub opt_hdr: types::OptionalHeader,
+    pub sections: HashMap<String, Section>,
 }
 
 impl File {
@@ -194,24 +183,14 @@ impl File {
         for shdr in sections_lst.into_iter() {
             try!(r.seek(io::SeekFrom::Start(shdr.raw_ptr as u64)));
             let data: Vec<u8> = io::Read::by_ref(&mut r).bytes().map(|x| x.unwrap()).take(shdr.virt_size as usize).collect();
-            sections.insert(String::from(shdr.name.to_str().unwrap()), Section {
-                hdr: shdr,
+            let name = String::from(shdr.name.to_str().unwrap());
+            sections.insert(name.clone(), Section {
+                name: name,
+                addr: shdr.virt_addr,
+                offset: shdr.virt_addr - base_img,
+                size: shdr.virt_size as u64,
                 data: data,
             });
-        }
-
-        try!(r.seek(io::SeekFrom::Start(sym_tab_ptr as u64)));
-
-        let tmp_name = try!(read_u64!(r));
-
-        if (tmp_name >> 4) == 0 {
-            let str_tab_ptr = sym_tab_ptr + (num_sym * 18); //18 bytes: size of symbol
-            let str_tab_off = tmp_name << 4;
-
-            try!(r.seek(io::SeekFrom::Start(str_tab_ptr as u64 + str_tab_off as u64)));
-
-        } else {
-            //TODO implement this
         }
 
         Ok(File {
@@ -271,7 +250,7 @@ impl fmt::Display for File {
     }
 }
 
-impl ::Object for File {
+impl Object for File {
     fn arch(&self) -> ::Arch {
         match self.file_hdr.machine {
             types::PM_AMD6 => ::Arch::X86(::Width::W64),
@@ -281,17 +260,7 @@ impl ::Object for File {
 
         }
     }
-    fn get_section(&self, name: &str) -> Option<::Section> {
-        if let Some(sect) = self.sections.get(name) {
-            Some(::Section {
-                name: String::from(sect.hdr.name.to_str().unwrap()), // FIXME don't construct another string here
-                addr: sect.hdr.virt_addr,
-                offset: sect.hdr.virt_addr - self.opt_hdr.base_img,
-                size: sect.hdr.virt_size as u64,
-                data: sect.data.clone(), // FIXME don't clone data, store sections
-            })
-        } else {
-            None
-        }
+    fn get_section(&self, name: &str) -> Option<&Section> {
+        self.sections.get(name)
     }
 }

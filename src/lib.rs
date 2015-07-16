@@ -88,9 +88,10 @@ pub enum ARMType {
 
 pub trait Object {
     fn arch(&self) -> Arch;
-    fn get_section(&self, name: &str) -> Option<Section>;
+    fn get_section(&self, name: &str) -> Option<&Section>;
 }
 
+#[derive(Debug)]
 pub struct Section {
     name: String,
     addr: u64,

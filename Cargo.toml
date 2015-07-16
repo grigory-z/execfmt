@@ -1,7 +1,10 @@
 [package]
 name = "execfmt"
-version = "0.2.2"
-authors = ["Jacob Greenfield <jacob.greenfield@siegetechnologies.com>"]
+description = "Executable format parsing library (currently supporting ELF and PE(+)"
+repository = "https://github.com/siegetechnologies/execfmt"
+keywords = ["executable", "ELF", "PE", "binary"]
+version = "0.3.0"
+authors = ["Jacob Greenfield <jacob.greenfield@siegetechnologies.com>", "Colin Davidson <colin.davidson@siegetechnologies.com>"]
 
 [dependencies]
 byteorder = '*'

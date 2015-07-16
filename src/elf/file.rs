@@ -6,7 +6,7 @@ use byteorder;
 use byteorder::ReadBytesExt;
 use elf::types;
 use std::collections::HashMap;
-use ::Error;
+use {Error, Section, Object};
 
 macro_rules! read_u8 {
     ($data:ident, $io:ident) => (
@@ -62,14 +62,9 @@ fn get_elf_string(data: &Vec<u8>, start: usize) -> String {
 }
 
 pub struct File {
-    hdr: types::FileHeader,
-    sections: HashMap<String, Section>,
-    symbols: HashMap<String, u64>,
-}
-
-pub struct Section {
-    hdr: types::SectionHeader,
-    data: Vec<u8>,
+    pub hdr: types::FileHeader,
+    pub sections: HashMap<String, Section>,
+    pub symbols: HashMap<String, u64>,
 }
 
 impl File {
@@ -218,7 +213,7 @@ impl File {
         }
 
         for (hdr, data) in sections_lst.into_iter().zip(sections_data.into_iter()) {
-            sections.insert(hdr.name.clone(), Section { hdr: hdr, data: data });
+            sections.insert(hdr.name.clone(), Section { name: hdr.name, addr: hdr.addr, offset: hdr.offset, size: hdr.size, data: data });
         }
 
         let x = File {
@@ -252,7 +247,7 @@ impl fmt::Display for File {
         try!(write!(f, "{}", self.hdr));
         try!(writeln!(f, "ELF sections"));
         for section in self.sections.values() {
-            try!(write!(f, "{}", section));
+            try!(write!(f, "{:?}", section));
         }
         try!(writeln!(f, "ELF symbols"));
         let mut x: Vec<&String> = self.symbols.keys().collect();
@@ -264,7 +259,7 @@ impl fmt::Display for File {
     }
 }
 
-impl ::Object for File {
+impl Object for File {
     fn arch(&self) -> ::Arch {
         let endian = match self.hdr.data {
             types::ELFDATA2LSB => ::Endianness::Little,
@@ -281,23 +276,7 @@ impl ::Object for File {
             _ => ::Arch::Unknown,
         }
     }
-    fn get_section(&self, name: &str) -> Option<::Section> {
-        if let Some(sect) = self.sections.get(name) {
-            Some(::Section {
-                name: sect.hdr.name.clone(),
-                addr: sect.hdr.addr,
-                offset: sect.hdr.offset,
-                size: sect.hdr.size,
-                data: sect.data.clone(), // FIXME don't clone data, store sections
-            })
-        } else {
-            None
-        }
-    }
-}
-
-impl fmt::Display for Section {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.hdr)
+    fn get_section(&self, name: &str) -> Option<&Section> {
+        self.sections.get(name)
     }
 }

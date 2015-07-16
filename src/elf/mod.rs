@@ -1,4 +1,4 @@
 pub mod file;
 pub mod types;
 
-pub use ::elf::file::File;
+pub use self::file::File;
