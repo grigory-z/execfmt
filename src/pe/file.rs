@@ -40,7 +40,7 @@ pub struct File {
 }
 
 impl File {
-    pub fn parse<R: io::Read + io::Seek>(mut r: R) -> Result<File, Box<error::Error>> {
+    pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<File, Box<error::Error>> {
         try!(r.seek(io::SeekFrom::Start(0)));
         let dossig = try!(read_u16!(r));
 
@@ -182,7 +182,7 @@ impl File {
 
         for shdr in sections_lst.into_iter() {
             try!(r.seek(io::SeekFrom::Start(shdr.raw_ptr as u64)));
-            let data: Vec<u8> = io::Read::by_ref(&mut r).bytes().map(|x| x.unwrap()).take(shdr.virt_size as usize).collect();
+            let data: Vec<u8> = io::Read::by_ref(r).bytes().map(|x| x.unwrap()).take(shdr.virt_size as usize).collect();
             let name = String::from(shdr.name.to_str().unwrap());
             sections.insert(name.clone(), Section {
                 name: name,

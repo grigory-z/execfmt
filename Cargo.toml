@@ -8,3 +8,4 @@ authors = ["Jacob Greenfield <jacob.greenfield@siegetechnologies.com>", "Colin D
 
 [dependencies]
 byteorder = '*'
+libc = '*'

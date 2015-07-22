@@ -1,8 +1,10 @@
 #![feature(cstr_to_str,slice_position_elem,convert)]
 extern crate byteorder;
+extern crate libc;
 
 pub mod pe;
 pub mod elf;
+pub mod mach;
 
 use std::io;
 use std::error;
@@ -134,6 +136,8 @@ pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<Box<Object>, Box<error
     if let Ok(x) = elf::File::parse(r) {
         Ok(Box::new(x))
     } else if let Ok(x) = pe::File::parse(r) {
+        Ok(Box::new(x))
+    } else if let Ok(x) = mach::File::parse(r) {
         Ok(Box::new(x))
     } else {
         Err(Box::new(Error::from("Invalid format")))
