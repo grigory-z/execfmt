@@ -1,4 +1,4 @@
-#![feature(cstr_to_str,slice_position_elem,convert)]
+#![feature(convert)]
 extern crate byteorder;
 extern crate libc;
 

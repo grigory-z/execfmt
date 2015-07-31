@@ -40,6 +40,7 @@ pub struct File {
 }
 
 impl File {
+    #[allow(unused_variables,unused_assignments)]
     pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<File, Box<error::Error>> {
         try!(r.seek(io::SeekFrom::Start(0)));
         let dossig = try!(read_u16!(r));
@@ -152,7 +153,7 @@ impl File {
             let mut name_str = name.as_ref();
 
             if name.contains(&0) {
-                name_str = &name_str[..name.position_elem(&0).unwrap()]
+                name_str = &name_str[..name.iter().position(|x| x == &0).unwrap()]
             }
 
             let virt_size = try!(read_u32!(r));
@@ -183,7 +184,7 @@ impl File {
         for shdr in sections_lst.into_iter() {
             try!(r.seek(io::SeekFrom::Start(shdr.raw_ptr as u64)));
             let data: Vec<u8> = io::Read::by_ref(r).bytes().map(|x| x.unwrap()).take(shdr.virt_size as usize).collect();
-            let name = String::from(shdr.name.to_str().unwrap());
+            let name = String::from_utf8(shdr.name.as_bytes().to_vec()).unwrap();
             sections.insert(name.clone(), Section {
                 name: name,
                 addr: shdr.virt_addr,

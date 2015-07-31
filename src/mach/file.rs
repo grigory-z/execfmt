@@ -61,12 +61,11 @@ macro_rules! read_u64 {
 
 pub struct File {
     hdr: types::FileHeader,
-    cmds: Vec<types::LoadCommand>,
     sections: HashMap<String, Section>,
 }
 
 impl File {
-    #[allow(unused_variables,unused_assignments)]
+    #[allow(unused_variables, unused_assignments)]
     pub fn parse<R: io::Read + io::Seek>(r: &mut R) -> Result<File, Box<error::Error>> {
         try!(r.seek(io::SeekFrom::Start(0)));
         let ident: u64 = 0;
@@ -194,7 +193,6 @@ impl File {
                 flags: flags,
                 data: data,
             },
-            cmds: cmds,
             sections: sections,
         };
         Ok(x)
