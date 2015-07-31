@@ -1,0 +1,14 @@
+-------------------------------------------------------
+execfmt
+-------------------------------------------------------
+
+Execfmt is a library for parsing ELF, PE, and Mach files.
+Execfmt collects processor architecture information, and
+parses code sections. Symbol support is currently limited
+to ELF files.
+
+When provided a readable object, it proceeds to parse,
+checking the provided object with coherence to each file
+type sequentially before giving up.
+
+-------------------------------------------------------
