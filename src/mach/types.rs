@@ -1,5 +1,5 @@
 use std::fmt;
-use libc::types::os::arch::c95::c_ulong;
+use libc::c_ulong;
 
 pub struct LoadCommand {
     pub cmd: u32,
